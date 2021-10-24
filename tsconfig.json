@@ -20,7 +20,8 @@
         "noImplicitAny": true,
         "strictNullChecks": true,
         "suppressImplicitAnyIndexErrors": true,
-        "allowSyntheticDefaultImports": true
+        "allowSyntheticDefaultImports": true,
+        "downlevelIteration": true
     },
     "include": [
         "src"

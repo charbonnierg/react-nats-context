@@ -1,7 +1,7 @@
 import type { NextPage } from "next";
-import { useNats, loadText } from "@quara-dev/react-nats-context";
+import { useNats, loadText, getHeaders } from "@quara-dev/react-nats-context";
 import { useState, useEffect } from "react";
-import { ErrorCode, Subscription } from "nats.ws";
+import { ErrorCode, headers, Subscription } from "nats.ws";
 import { Button, Link, Text, Code, SimpleGrid, Stack } from "@chakra-ui/react";
 
 const Home: NextPage = () => {
@@ -29,10 +29,12 @@ const Home: NextPage = () => {
     const start_task = async () => {
       for await (const msg of subscription) {
         const data = loadText(msg.data);
+        const msgHeaders = {
+          ...msg.headers,
+          headers: getHeaders(msg),
+        }
         alert(
-          `Received new message on subject ${subject} (${JSON.stringify(
-            msg.headers
-          )}): ${data}`
+          `Received new message on subject ${subject} (${JSON.stringify(msgHeaders)}): ${data}`
         );
       }
     };
@@ -94,7 +96,11 @@ const Home: NextPage = () => {
           </Text>
           <Button
             disabled={!connected}
-            onClick={() => publishText("foo", "hello")}
+            onClick={() => {
+              const msgHeaders = headers();
+              msgHeaders.set("from", "react-nats-context");
+              publishText("foo", "hello", { headers: msgHeaders });
+            }}
           >
             Send &apos;hello&apos; on subject &apos;foo&apos;
           </Button>
