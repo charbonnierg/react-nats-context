@@ -20,8 +20,11 @@ export const ContainerLayout = ({ children }: { children: ReactNode }) => {
         <Text mr="2rem" ml="0" onClick={() => router.push("/")}>
           Home
         </Text>
-        <Text mr="2rem" ml="0" onClick={() => router.push("/minimal")}>
-          Minimal
+        <Text mr="2rem" ml="0" onClick={() => router.push("/use-subscription")}>
+          Subscriptions
+        </Text>
+        <Text mr="2rem" ml="0" onClick={() => router.push("/use-request")}>
+          Requests
         </Text>
         <Box>
           <ConnectionStatus
@@ -31,7 +34,12 @@ export const ContainerLayout = ({ children }: { children: ReactNode }) => {
         </Box>
       </Flex>
       <Stack h="100vh" w="full">
-        <Container mx="auto" h="full" maxWidth={["90%", "85%", "80%", "70%"]}>
+        <Container
+          mt={{ sm: "4rem", md: "2rem", lg: "0rem" }}
+          mx="auto"
+          h="full"
+          maxWidth={["90%", "85%", "80%", "70%"]}
+        >
           {children}
         </Container>
       </Stack>

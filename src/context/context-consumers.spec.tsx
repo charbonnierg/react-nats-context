@@ -37,7 +37,7 @@ test("Should publish/subscribe messages", async () => {
   // We expect the response data be an Uint8Array
   expect(_result.msg?.data).toBeInstanceOf(Uint8Array);
   // We expect the response data to be decodable into an empty string
-  expect(result.current.decodeText(_result.msg?.data as any as Uint8Array)).toBe(
-    ""
-  );
+  expect(
+    result.current.decodeText(_result.msg?.data as any as Uint8Array)
+  ).toBe("");
 });

@@ -1,6 +1,6 @@
 {
   "name": "@quara-dev/react-nats-context",
-  "version": "1.2.7",
+  "version": "1.3.0",
   "description": "NATS Typescript client library for React applications",
   "main": "./lib/cjs/index.js",
   "module": "./lib/esm/index.js",
@@ -17,7 +17,8 @@
     "build:esm": "tsc",
     "build:cjs": "tsc --module commonjs --outDir lib/cjs",
     "test": "jest \".*\\.spec\\.[ts|tsx]\" --runInBand --env ./scripts/jest.env.js",
-    "nats": "nats-server -c nats.local.conf" 
+    "nats": "nats-server -c nats.local.conf",
+    "format": "prettier -w examples/demo--react-nats/pages examples/demo--react-nats/components src"
   },
   "devDependencies": {
     "@testing-library/react-hooks": "^7.0.1",

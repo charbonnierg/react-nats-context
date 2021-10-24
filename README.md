@@ -49,51 +49,111 @@ export const PublishButton () => {
 }
 ```
 
-## Minimal subscription example
+- The `useRequest` hook can be used to perform a request asynchronously while component is being displayed:
 
 ```typescript
-import { useEffect } from "react";
+import type { NextPage } from "next";
+import { Empty, loadText, useRequest } from "@quara-dev/react-nats-context";
+import { Text, Code, Button } from "@chakra-ui/react";
+
+const UseRequestExample = () => {
+  /**
+   * Request will be fired automatically because "auto" is set to true.
+   * It is then possible to return some UI elements according to request state.
+   */
+  const request = useRequest("demo", Empty, { auto: true });
+
+
+  // When request failed
+  if (request.error) {
+    return (
+      <>
+        <Text mt="10rem">
+          Aie ! An error occured:{" "}
+          <Code>
+            // Additional information might be available on request.error attribute
+            {JSON.stringify({
+              message: request.error.message,
+              code: request.error.code,
+              description: request.error.description,
+              name: request.error.name,
+            })}
+          </Code>
+        </Text>
+        // Refresh request on click
+        <Button onClick={() => request.refresh()}>Refresh</Button>
+      </>
+    );
+  }
+  // When request is still on-going
+  if (request.loading) {
+    return <Text mt="10rem">Waiting for reply...</Text>;
+  }
+  // When request was successfull
+  if (request.result) {
+    return (
+      <>
+        <Text mt="10rem">
+          // Parse response data as string
+          Got a response : <Code>{loadText(request.result.data)}</Code>
+        </Text>
+        // Refresh the request on click
+        <Button onClick={() => request.refresh()}>Refresh</Button>
+      </>
+    );
+  }
+  // When no request has been performed yet, I.E, client is not connected
+  return (
+    <>
+      <Text mt="10rem">Not doing anything</Text>
+      // Refresh the request on click
+      <Button onClick={() => request.refresh()}>Refresh</Button>
+    </>
+  );
+};
+
+export default UseRequestExample;
+```
+
+## Minimal subscription example
+
+Below is an example of a Next.js application page using a subscription:
+
+```typescript
+import type { NextPage } from "next";
+import {
+  dumpText,
+  loadText,
+  useSubscription,
+  Msg,
+  NatsError,
+} from "@quara-dev/react-nats-context";
 import { Text } from "@chakra-ui/react";
 
-import { Empty, PublishOptions } from "nats.ws";
-import { TextMsg, useNats } from "@quara-dev/react-nats-context";
-
-const MinimalSub = () => {
-  const {
-    subscribe,
-    connected,
-    connecting,
-    reconnecting,
-    decodeText,
-    encodeText,
-  } = useNats();
-
-  const callback = (msg: TextMsg) => {
-    alert(`Received new message: ${msg.data}`);
-  };
-
-  useEffect(() => {
-    if (!connected) {
+const MinimalExample: NextPage = () => {
+  /**
+   * A callback that will be used to process messages
+   */
+  const callback = (error: NatsError | null, msg: Msg) => {
+    if (error) {
+      console.error(error);
       return;
     }
-    const sub = subscribe("demo");
-    // Create an async function that will process each message. It will first parse them into a TextMsg then execute the callback
-    const processor = async () => {
-      for await (const msg of sub) {
-        callback({
-          ...msg,
-          data: decodeText(msg.data),
-          respond: (data?: string, opts?: PublishOptions) =>
-            msg.respond(data ? encodeText(data) : Empty, opts),
-        });
-      }
-    };
-    processor();
-    return () => {
-      sub.unsubscribe();
-    };
-  }, [connected, decodeText, encodeText, subscribe]);
+    alert(`Received new message: ${loadText(msg.data)}`);
+    msg.respond(dumpText("Ack"));
+  };
+  /**
+   * Use the useSubscription hook to start a subscription in the background
+   * (only when client is connected)
+   */
+  const { connected, connecting, reconnecting, closed } = useSubscription(
+    "demo",
+    { callback }
+  );
 
+  /**
+   * Display a component that gets updated on connection status update
+   */
   if (connected) {
     return <Text>Up and running</Text>;
   } else if (connecting) {
@@ -102,73 +162,14 @@ const MinimalSub = () => {
     );
   } else if (reconnecting) {
     return <Text>Reconnecting to the NATS server</Text>;
+  } else if (closed) {
+    return <Text>No connection to NATS server</Text>;
   } else {
-    return <Text>Disconnected from the NATS server</Text>;
+    return <Text>Aie ! Disconnected from the NATS server</Text>;
   }
 };
 
-export default MinimalSub;
-```
-
-## Subscribe to dynamic subject
-
-- Create two state variables to hold subject and subscription
-
-```typescript
-import { useNats } from "@quara-dev/react-nats-context";
-import { useState, useEffect } from "react";
-
-const { decodeText, subscribe, connected } = useNats();
-const [subject, setSubject] = useState<string | null>(null);
-const [subscription, setSubscription] = useState<Subscription | null>(null);
-```
-
-- Create an effect to start and stop the subscription
-
-```typescript
-useEffect(
-  () => {
-    // Set subscription to null value if client is not connected
-    if (!connected) {
-      setSubscription(null);
-    }
-    // Subscribe only when a subject is defined
-    else if (subject) {
-      const sub = subscribe(subject);
-      // Set the subscription state value
-      setSubscription(sub);
-      // Return clean up function
-      return () => sub.unsubscribe();
-    }
-  },
-  // Run this effect every time any of the three dependency change
-  [subject, connected, subscribe]
-);
-```
-
-- Create an effect to process messages as they come
-
-```typescript
-useEffect(
-  () => {
-    // Nothing to do if we're not connected
-    if (!connected || !subscription) {
-      return;
-    }
-    // Create an async function that will process each message
-    const start_task = async () => {
-      for await (const msg of subscription) {
-        // Message raw data is an UInt8Array
-        const data = decodeText(msg.data);
-        alert(`Received new message on subject ${subject}: ${data}`);
-      }
-    };
-    // Start processing messages
-    start_task();
-  },
-  // Run this effect on every dependency change
-  [subscription, decodeText, subject, connected]
-);
+export default MinimalExample;
 ```
 
 ## Display connection status using a circular progress
@@ -180,7 +181,7 @@ import { CircularProgress, CircularProgressProps } from "@chakra-ui/react";
 import { useNats } from "@quara-dev/react-nats-context";
 
 export const ConnectionStatus = (props: CircularProgressProps) => {
-  // This component uses the NATS Context because it needs to access the NATS client
+  // Each variable is a boolean state that gets updated on the fly
   const { reconnecting, connecting, connected, connect } = useNats();
 
   // The NATS client is not initialized yet, we're connecting for the first time
@@ -211,21 +212,53 @@ export const ConnectionStatus = (props: CircularProgressProps) => {
 ## Features
 
 ```jsx
-import { useNats } from "@quara-dev/react-nats-context";
+/**
+ * Those imports can be used for typing only
+ */
+import type {
+  NatsContextAttrs,
+  NatsContextProps,
+  NatsConnection,
+  NatsError,
+  ConnectionOptions,
+  PublishOptions,
+  RequestOptions,
+  SubscriptionOptions,
+  Subscription,
+  Msg,
+  TextMsg,
+  JsonMsg,
+} from "@quara-dev/react-nats-context";
 
+/**
+ * Those imports can be used as values
+ */
+import {
+  Empty,
+  NatsContext,
+  NatsProvider,
+  dumpText,
+  dumpJSON,
+  loadText,
+  loadJSON,
+  useNats,
+  useSubscription
+} from "@quara-dev/react-nats-context";
 
+/**
+ * You can find below all attributes that are available on an NATS context
+ */
 export const MyComponent () => {
-  // You can find below all properties that are available on an NATS context
   const {
     nc,
-    reconnecting,
-    connecting,
+    connect,
+    close,
+    reconnect,
+    update,
     connected,
-    subscriptions,
-    encodeText,
-    encodeJson,
-    decodeText,
-    decodeJson,
+    connecting,
+    reconnecting,
+    closed,
     subscribe,
     publish,
     publishText,
@@ -233,7 +266,18 @@ export const MyComponent () => {
     request,
     requestText,
     requestJson,
-    reconnect,
   } = useNats()
+
+  /**
+   * There is also a hook to subscribe to a subject
+   */
+  const {
+    sub,
+    connected,
+    connecting,
+    reconnecting,
+    closed,
+    update,
+  } = useSubscription("foo")
 }
 ```

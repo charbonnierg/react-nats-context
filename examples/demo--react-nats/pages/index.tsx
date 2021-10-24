@@ -1,19 +1,12 @@
 import type { NextPage } from "next";
-import { useNats } from "@quara-dev/react-nats-context";
+import { useNats, loadText } from "@quara-dev/react-nats-context";
 import { useState, useEffect } from "react";
 import { ErrorCode, Subscription } from "nats.ws";
 import { Button, Link, Text, Code, SimpleGrid, Stack } from "@chakra-ui/react";
 
 const Home: NextPage = () => {
-  const {
-    connect,
-    close,
-    connected,
-    decodeText,
-    publishText,
-    requestText,
-    subscribe,
-  } = useNats();
+  const { connect, close, connected, publishText, requestText, subscribe } =
+    useNats();
   const [subject, setSubject] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
 
@@ -21,11 +14,10 @@ const Home: NextPage = () => {
   useEffect(() => {
     if (!connected) {
       setSubscription(null);
-    }
-    else if (subject) {
+    } else if (subject) {
       const sub = subscribe(subject);
       setSubscription(sub);
-      return () => sub.unsubscribe()
+      return () => sub.unsubscribe();
     }
   }, [subject, connected, subscribe]);
 
@@ -36,12 +28,16 @@ const Home: NextPage = () => {
     }
     const start_task = async () => {
       for await (const msg of subscription) {
-        const data = decodeText(msg.data);
-        alert(`Received new message on subject ${subject} (test: ${JSON.stringify(msg.headers?.get("TEST"))}): ${data}`);
+        const data = loadText(msg.data);
+        alert(
+          `Received new message on subject ${subject} (${JSON.stringify(
+            msg.headers
+          )}): ${data}`
+        );
       }
     };
     start_task();
-  }, [subscription, decodeText, subject, connected]);
+  }, [subscription, subject, connected]);
 
   // Some styling
   const stackProps = {
@@ -73,7 +69,7 @@ const Home: NextPage = () => {
       </Text>
 
       <SimpleGrid
-        marginTop={{ sm: "2rem", xl: "6rem" }}
+        marginTop={{ sm: "2rem", xl: "4rem" }}
         columns={{ sm: 1, xl: 2 }}
       >
         <Stack {...stackProps}>
@@ -164,21 +160,7 @@ const Home: NextPage = () => {
           <Button
             disabled={!connected}
             onClick={() => {
-              try {
-                publishText("bar", "", { reply: "foo" });
-              } catch (err: any) {
-                const code: ErrorCode | undefined = err.code;
-                switch (code) {
-                  case ErrorCode.NoResponders:
-                    alert("No responder on subject bar");
-                    break;
-                  case ErrorCode.Timeout:
-                    alert("Someone is listening but did not respond");
-                    break;
-                  default:
-                    alert(`Request failed due to error: ${err}`);
-                }
-              }
+              publishText("bar", "", { reply: "foo" });
             }}
           >
             Publish subject &apos;bar&apos; and wait reply on &apos;foo&apos;
