@@ -1,6 +1,6 @@
 {
   "name": "@quara-dev/react-nats-context",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "NATS Typescript client library for React applications",
   "main": "./lib/cjs/index.js",
   "module": "./lib/esm/index.js",
