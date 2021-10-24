@@ -37,7 +37,7 @@ const Home: NextPage = () => {
     const start_task = async () => {
       for await (const msg of subscription) {
         const data = decodeText(msg.data);
-        alert(`Received new message on subject ${subject}: ${data}`);
+        alert(`Received new message on subject ${subject} (test: ${JSON.stringify(msg.headers?.get("TEST"))}): ${data}`);
       }
     };
     start_task();

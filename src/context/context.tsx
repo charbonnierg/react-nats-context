@@ -36,6 +36,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import {
   connect,
   ConnectionOptions,
+  Empty,
   Events,
   JSONCodec,
   Msg,
@@ -71,7 +72,7 @@ export type JsonMsg = Omit<Omit<Msg, "respond">, "data"> & { data: unknown, resp
 /**
  * Properties that are expected when creating a new NatsContext
  */
-interface NatsContextProps extends ConnectionOptions {
+export interface NatsContextProps extends ConnectionOptions {
   children: any;
   onStatus?: (props: NatsNotificationProps) => void;
   onConnect?: (props: NatsNotificationProps) => void;
@@ -287,7 +288,7 @@ export const NatsProvider = (props: NatsContextProps) => {
    * @param payload  - The content of the message
    */
   const publish = (subject: string, payload?: Uint8Array): void => {
-    nc.publish(subject, payload || new Uint8Array());
+    nc.publish(subject, payload || Empty);
   };
 
   /**
@@ -297,7 +298,7 @@ export const NatsProvider = (props: NatsContextProps) => {
    * @param payload  - The content of the message
    */
   const publishText = (subject: string, payload?: string, opts?: PublishOptions): void => {
-    nc.publish(subject, payload ? encodeText(payload) : new Uint8Array(), opts);
+    nc.publish(subject, payload ? encodeText(payload) : Empty, opts);
   };
 
   /**
@@ -307,7 +308,7 @@ export const NatsProvider = (props: NatsContextProps) => {
    * @param payload  - The content of the message
    */
   const publishJson = (subject: string, payload?: unknown, opts?: PublishOptions): void => {
-    nc.publish(subject, payload ? encodeJson(payload) : new Uint8Array(), opts);
+    nc.publish(subject, payload ? encodeJson(payload) : Empty, opts);
   };
 
   /**
@@ -318,7 +319,7 @@ export const NatsProvider = (props: NatsContextProps) => {
    * @param opts - The request options (timeout, headers, ...)
    */
   const request = async (subject: string, payload?: Uint8Array, opts?: RequestOptions): Promise<Msg> => {
-    return await nc.request(subject, payload || new Uint8Array(), opts)
+    return await nc.request(subject, payload || Empty, opts)
   }
 
   /**
@@ -329,12 +330,12 @@ export const NatsProvider = (props: NatsContextProps) => {
  * @param opts - The request options (timeout, headers, ...)
  */
   const requestText = async (subject: string, payload?: string, opts?: RequestOptions): Promise<TextMsg> => {
-    const reply_msg = await nc.request(subject, payload ? SC.encode(payload) : new Uint8Array(), opts)
+    const reply_msg = await nc.request(subject, payload ? SC.encode(payload) : Empty, opts)
     return {
       ...reply_msg,
       data: reply_msg.data ? decodeText(reply_msg.data) : "",
       respond: (data?: string, opts?: PublishOptions) => {
-        return reply_msg.respond(data ? encodeText(data) : new Uint8Array(), opts)
+        return reply_msg.respond(data ? encodeText(data) : Empty, opts)
       }
     }
   }
@@ -347,12 +348,12 @@ export const NatsProvider = (props: NatsContextProps) => {
    * @param opts - The request options (timeout, headers, ...)
    */
   const requestJson = async (subject: string, payload?: unknown, opts?: RequestOptions): Promise<JsonMsg> => {
-    const reply_msg = await nc.request(subject, payload ? JC.encode(payload) : new Uint8Array(), opts)
+    const reply_msg = await nc.request(subject, payload ? JC.encode(payload) : Empty, opts)
     return {
       ...reply_msg,
       data: reply_msg.data ? decodeJson(reply_msg.data) : null,
       respond: (data?: unknown, opts?: PublishOptions) => {
-        return reply_msg.respond(data ? encodeJson(data) : new Uint8Array(), opts)
+        return reply_msg.respond(data ? encodeJson(data) : Empty, opts)
       }
     }
   }
@@ -539,3 +540,14 @@ export const useNats = (): NatsContextAttrs => {
   const nats = useContext(NatsContext);
   return nats;
 };
+
+// Export most used stuff from nats.ws
+export {
+  ConnectionOptions,
+  Msg,
+  PublishOptions,
+  RequestOptions,
+  Subscription,
+  SubscriptionOptions,
+  Empty
+}
